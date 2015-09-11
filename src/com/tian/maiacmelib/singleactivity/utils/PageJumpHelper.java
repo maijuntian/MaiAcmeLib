@@ -1,9 +1,9 @@
 package com.tian.maiacmelib.singleactivity.utils;
 
+import com.tian.maiacmelib.singleactivity.domain.HtmlModel;
 import com.tian.maiacmelib.singleactivity.domain.PageData;
 import com.tian.maiacmelib.singleactivity.domain.PageData.PageActionType;
 import com.tian.maiacmelib.singleactivity.grobal.GrobalResource;
-import com.tian.maiacmelib.singleactivity.inter.IPageLife;
 
 import android.content.Context;
 import android.content.Intent;
@@ -14,6 +14,9 @@ import android.content.Intent;
  *
  */
 public class PageJumpHelper {
+	
+	private static String HTML_ON_OPEN = "onOpen";  //html页面跳转的方法
+	private static String HTML_ON_RESUME = "onResume";  //html页面回显的方法
 	
 	private static void sendBroadcast(Context context, PageData pageData){
 		Intent intent = new Intent(GrobalResource.IntentAction_Page_Single_Open_Action);
@@ -78,4 +81,77 @@ public class PageJumpHelper {
 		sendBroadcast(context, pageData);
 	}
 	
+	/**
+	 * 原生打开html界面
+	 * @param context 上下文
+	 * @param pagePath  页面路径
+	 */
+	public static void OpenHtmlJump(Context context, String pagePath){
+		OpenHtmlJump(context, pagePath, HTML_ON_OPEN, null);
+	}
+	
+	/**
+	 * 原生打开html界面
+	 * @param context 上下文
+	 * @param pagePath  页面路径
+	 * @param params  js方法参数
+	 */
+	public static void OpenHtmlJump(Context context, String pagePath, String params){
+		OpenHtmlJump(context, pagePath, HTML_ON_OPEN, params);
+	}
+	
+	
+	/**
+	 * 原生打开html界面
+	 * @param context 上下文
+	 * @param pagePath  页面路径
+	 * @param method  页面打开js方法
+	 * @param params  js方法参数
+	 */
+	public static void OpenHtmlJump(Context context, String pagePath, String method, String params){
+		if(pagePath == null || pagePath.equals("")){
+			throw new RuntimeException("请指定具体的html页面"); 
+		}
+		PageData pageData = new PageData(PageActionType.OPEN_HTML);
+		HtmlModel htmlModel = new HtmlModel();
+		if(params == null || params.equals("")){
+			htmlModel.setOnOpen("javascript:"+method+"('"+pagePath+"')");
+		} else {
+			htmlModel.setOnOpen("javascript:"+method+"('"+pagePath+"', '"+params+"')");
+		}
+		pageData.setData(htmlModel);
+		sendBroadcast(context, pageData);
+	}
+	
+	/**
+	 * 原生返回html界面  + 不带结果返回
+	 * @param context  上下文
+	 */
+	public static void ReturnHtmlJump(Context context){
+		PageData pageData = new PageData(PageActionType.RETURN_HTML);
+		sendBroadcast(context, pageData);
+	}
+	
+	/**
+	 * 原生返回html界面  + 带结果返回 + 默认js方法onResume
+	 * @param context  上下文
+	 * @param result  结果
+	 */
+	public static void ReturnHtmlJumpForResult(Context context, String result){
+		ReturnHtmlJumpForResult(context, HTML_ON_RESUME, result);
+	}
+	
+	/**
+	 * 原生返回html界面  + 带结果返回
+	 * @param context  上下文
+	 * @param method  js回显方法
+	 * @param result  结果
+	 */
+	public static void ReturnHtmlJumpForResult(Context context, String method, String result){
+		PageData pageData = new PageData(PageActionType.RETURN_HTML);
+		HtmlModel htmlModel = new HtmlModel();
+		htmlModel.setOnResume("javascript:"+method+"("+result+"')");
+		pageData.setResult(htmlModel);
+		sendBroadcast(context, pageData);
+	}
 }

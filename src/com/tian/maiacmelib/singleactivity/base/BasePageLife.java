@@ -10,8 +10,6 @@ import com.tian.maiacmelib.singleactivity.utils.PageJumpHelper;
 
 public class BasePageLife implements IPageLife{
 	
-	private static final long serialVersionUID = -1L;
-	
 	private PageActionMode actionMode;
 	protected Activity context;
 	
@@ -89,8 +87,11 @@ public class BasePageLife implements IPageLife{
 	}
 
 	@Override
-	public void onPause() {
-		
+	public void onPause() {}
+	
+	
+	protected View findViewById(int id){
+		return context.findViewById(id);
 	}
 
 }
