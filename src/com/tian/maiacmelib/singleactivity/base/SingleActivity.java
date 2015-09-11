@@ -178,7 +178,7 @@ public abstract class SingleActivity extends Activity{
 			case RETURN:  
 				returnPage(pageData);
 				break;
-			case RETURN_MAIN:
+			case RETURN_MAIN: 
 				returnMain(pageData);
 				break;
 			case OPEN_HTML:
