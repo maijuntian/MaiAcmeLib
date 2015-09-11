@@ -26,6 +26,7 @@ import android.view.View.OnClickListener;
 import android.view.animation.Animation;
 import android.view.animation.Animation.AnimationListener;
 import android.view.animation.AnimationUtils;
+import android.webkit.WebView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -37,7 +38,9 @@ import android.widget.TextView;
 public abstract class SingleActivity extends Activity{
     private String LogTag = "MaiAcmeLib";
     
+    private WebView webView;  //记住webview
     private PageReciever reciever;
+    private Animation anim_right_in, anim_left_in, anim_right_out, anim_left_out;
     
 	Stack<PageInfo> pageStack = null;
 	
@@ -49,6 +52,10 @@ public abstract class SingleActivity extends Activity{
 		ActivityManager.getInstance().addActivity(this);
 		
 		pageStack = new Stack<PageInfo>();
+		anim_right_in = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_right_in);
+		anim_left_out = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_left_out);
+		anim_right_out = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_right_out);
+		anim_left_in = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_left_in);
 	}
 	protected abstract void initView();
 	protected abstract void initListener();
@@ -67,6 +74,12 @@ public abstract class SingleActivity extends Activity{
 	public void setContentView(View view) {
 		if(view != null){
 			super.setContentView(view);	
+			PageInfo pageInfo = new PageInfo();
+			pageInfo.setView(view);
+			pageStack.add(pageInfo);
+			if(view instanceof WebView){
+				this.webView = (WebView) view;
+			}
 		}
 	}
 	
@@ -151,71 +164,52 @@ public abstract class SingleActivity extends Activity{
 			log("页面跳转接收器------>对应动作：" + pageData.getActionType());
 			switch (pageData.getActionType()) {
 			case OPEN:
-				/**
-				 * 保存界面信息
-				 */
-				IPageLife iPageLife = null;
-				try {
-					iPageLife = (IPageLife) pageData.getiPageLifeClass().newInstance();
-				} catch (Exception e1) {
-					throw new RuntimeException(e1);
-				}
-				PageInfo pageInfo = new PageInfo();
-				pageInfo.setIPageLife(iPageLife);
-				
-				//=========================生成界面==================================
-				View view = null;
-				if(iPageLife.bindViewClass() != null){
-					try {
-						view = (View) iPageLife.bindViewClass().getConstructor(Context.class).newInstance(SingleActivity.this.getBaseContext());
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				} else {
-					view = LayoutInflater.from(context).inflate(iPageLife.bindViewId(), null);
-				}
-				pageInfo.setView(view);  //记录当前界面
-				/** 加动画 */
-				Animation anim_right_in = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_right_in);
-				Animation anim_left_out = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_left_out);
-				pageStack.peek().getView().setAnimation(anim_left_out);
-				view.setAnimation(anim_right_in);
-				setContentView(view);
-				//=====================================================================
-				
-				if(pageStack.peek().getIPageLife() != null)
-					pageStack.peek().getIPageLife().onPause();
-				iPageLife.onCreate(SingleActivity.this, pageData.getData());  //初始化界面
-				iPageLife.onResume(); //显现
-				
-				//========================启动模式===================================
-				if(iPageLife.getActionMode() != null){
-					switch(iPageLife.getActionMode()){
-					case FINISH_BEFORE:
-						log("页面跳转接收器------>启动模式：FINISH_BEFORE");
-						popPage();
-						break;
-					case CLEAR_ALL:
-						log("页面跳转接收器------>启动模式：CLEAR_ALL");
-						clearPage();
-						break;
-					}
-				}
-				//=================================================================
-				
-				pageStack.add(pageInfo);
-				log("pageStack大小:" + pageStack.size());
+				open(context, pageData);
 				break;
 			case RETURN:  
-				/** 加动画 */
-				Animation anim_right_out = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_right_out);
-				Animation anim_left_in = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_left_in);
-				PageInfo curPage = pageStack.pop();
-				if(curPage.getIPageLife() != null){
-					 curPage.getIPageLife().onPause();  //暂停生命周期
-					 curPage.getIPageLife().onFinish(); //结束生命周期
+				returnPage(pageData);
+				break;
+			case RETURN_MAIN:
+				PageInfo curPage2 = pageStack.pop();
+				if(curPage2.getIPageLife() != null){
+					curPage2.getIPageLife().onPause();  //暂停生命周期
+					curPage2.getIPageLife().onFinish(); //结束生命周期
 				} 
-				curPage.getView().setAnimation(anim_right_out);
+				curPage2.getView().setAnimation(anim_left_out);
+				if(pageStack.size() > 0){ //存在返回界面
+					while(pageStack.size() != 1){
+						pageStack.pop();
+					}
+					PageInfo backPage = pageStack.peek(); //返回界面	
+					backPage.getView().setAnimation(anim_right_in);
+					setContentView(backPage.getView());
+					if(pageStack.size() == 1){  //调用activity中的重启生命周期
+						onResume();
+						if(pageData.getResult() != null){ //有返回值
+							returnResult(pageData.getResult());
+						}
+						return;
+					}
+					if(backPage.getIPageLife() != null){
+						backPage.getIPageLife().onResume(); //重启生命周期
+						if(pageData.getResult() != null){ //有返回值
+							backPage.getIPageLife().returnResult(pageData.getResult());
+						}
+					}
+				} else {
+					finish();
+				}
+			case OPEN_HTML:
+				
+				break;
+			case RETURN_FIX:
+				PageInfo curPage3 = pageStack.pop();
+				if(curPage3.getIPageLife() != null){
+					 curPage3.getIPageLife().onPause();  //暂停生命周期
+					 curPage3.getIPageLife().onFinish(); //结束生命周期
+				} 
+				/** 加动画 */
+				curPage3.getView().setAnimation(anim_right_out);
 				if(pageStack.size() > 0){ //存在返回界面
 					PageInfo backPage = pageStack.peek(); //返回界面	
 					backPage.getView().setAnimation(anim_left_in);
@@ -232,43 +226,13 @@ public abstract class SingleActivity extends Activity{
 						if(pageData.getResult() != null){ //有返回值
 							backPage.getIPageLife().returnResult(pageData.getResult());
 						}
+					} else if(backPage.getView() instanceof WebView){ //返回是webview
+						
 					}
 				} else {
 					finish();
 				}
 				break;
-			case RETURN_MAIN:
-				Animation anim_right_in2 = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_right_in);
-				Animation anim_left_out2 = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_left_out);
-				PageInfo curPage2 = pageStack.pop();
-				if(curPage2.getIPageLife() != null){
-					curPage2.getIPageLife().onPause();  //暂停生命周期
-					curPage2.getIPageLife().onFinish(); //结束生命周期
-				} 
-				curPage2.getView().setAnimation(anim_left_out2);
-				if(pageStack.size() > 0){ //存在返回界面
-					while(pageStack.size() != 1){
-						pageStack.pop();
-					}
-					PageInfo backPage = pageStack.peek(); //返回界面	
-					backPage.getView().setAnimation(anim_right_in2);
-					setContentView(backPage.getView());
-					if(pageStack.size() == 1){  //调用activity中的重启生命周期
-						onResume();
-						if(pageData.getResult() != null){ //有返回值
-							returnResult(pageData.getResult());
-						}
-						return;
-					}
-					if(backPage.getIPageLife() != null){
-						backPage.getIPageLife().onResume(); //重启生命周期
-						if(pageData.getResult() != null){ //有返回值
-							backPage.getIPageLife().returnResult(pageData.getResult());
-						}
-					}
-				} else {
-					finish();
-				}
 			case FINISH:
 				finish();
 				break;
@@ -278,6 +242,97 @@ public abstract class SingleActivity extends Activity{
 			}
 		}
 		
+	}
+	
+	private void returnPage (PageData pageData){
+		PageInfo curPage = pageStack.pop();
+		if(curPage.getIPageLife() != null){
+			 curPage.getIPageLife().onPause();  //暂停生命周期
+			 curPage.getIPageLife().onFinish(); //结束生命周期
+		} 
+		/** 加动画 */
+		curPage.getView().setAnimation(anim_right_out);
+		if(pageStack.size() > 0){ //存在返回界面
+			PageInfo backPage = pageStack.peek(); //返回界面	
+			backPage.getView().setAnimation(anim_left_in);
+			setContentView(backPage.getView());
+			if(pageStack.size() == 1){  //调用activity中的重启生命周期
+				onResume();
+				if(pageData.getResult() != null){ //有返回值
+					returnResult(pageData.getResult());
+				}
+				return;
+			}
+			if(backPage.getIPageLife() != null){
+				backPage.getIPageLife().onResume(); //重启生命周期
+				if(pageData.getResult() != null){ //有返回值
+					backPage.getIPageLife().returnResult(pageData.getResult());
+				}
+			}
+		} else {
+			finish();
+		}
+	}
+	
+	
+	
+	/**
+	 * 打开界面
+	 * @param pageData
+	 */
+	private void open(Context context, PageData pageData){
+		/**
+		 * 保存界面信息
+		 */
+		IPageLife iPageLife = null;
+		try {
+			iPageLife = (IPageLife) pageData.getiPageLifeClass().newInstance();
+		} catch (Exception e1) {
+			throw new RuntimeException(e1);
+		}
+		PageInfo pageInfo = new PageInfo();
+		pageInfo.setIPageLife(iPageLife);
+		
+		//=========================生成界面==================================
+		View view = null;
+		if(iPageLife.bindViewClass() != null){
+			try {
+				view = (View) iPageLife.bindViewClass().getConstructor(Context.class).newInstance(SingleActivity.this.getBaseContext());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else {
+			view = LayoutInflater.from(context).inflate(iPageLife.bindViewId(), null);
+		}
+		pageInfo.setView(view);  //记录当前界面
+		/** 加动画 */
+		pageStack.peek().getView().setAnimation(anim_left_out);
+		view.setAnimation(anim_right_in);
+		setContentView(view);
+		//=====================================================================
+		
+		if(pageStack.peek().getIPageLife() != null)
+			pageStack.peek().getIPageLife().onPause();
+		iPageLife.onCreate(SingleActivity.this, pageData.getData());  //初始化界面
+		iPageLife.onResume(); //显现
+		
+		//========================启动模式===================================
+		if(iPageLife.getActionMode() != null){
+			switch(iPageLife.getActionMode()){
+			case FINISH_BEFORE:
+				log("页面跳转接收器------>启动模式：FINISH_BEFORE");
+				popPage();
+				break;
+			case CLEAR_ALL:
+				log("页面跳转接收器------>启动模式：CLEAR_ALL");
+				clearPage();
+				break;
+			}
+		}
+		//=================================================================
+		
+		pageStack.add(pageInfo);
+		log("pageStack大小:" + pageStack.size());
 	}
 	
 	/** 初始化左边按钮 */

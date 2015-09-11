@@ -15,8 +15,10 @@ public class PageData implements Serializable{
 	
 	public enum PageActionType{
 		OPEN,
-		RETURN,
 		FINISH,
+		RETURN,
+		OPEN_HTML,
+		RETURN_FIX,
 		RETURN_MAIN
 	}
 	
