@@ -17,8 +17,6 @@ public class PageData implements Serializable{
 		OPEN,
 		FINISH,
 		RETURN,
-		OPEN_HTML,
-		RETURN_FIX,
 		RETURN_MAIN
 	}
 	

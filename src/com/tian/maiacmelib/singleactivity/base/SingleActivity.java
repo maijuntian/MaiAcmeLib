@@ -40,7 +40,6 @@ public abstract class SingleActivity extends Activity{
     
     private WebView webView;  //记住webview
     private PageReciever reciever;
-    private Animation anim_right_in, anim_left_in, anim_right_out, anim_left_out;
     
 	Stack<PageInfo> pageStack = null;
 	
@@ -52,14 +51,7 @@ public abstract class SingleActivity extends Activity{
 		ActivityManager.getInstance().addActivity(this);
 		
 		pageStack = new Stack<PageInfo>();
-		anim_right_in = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_right_in);
-		anim_left_out = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_left_out);
-		anim_right_out = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_right_out);
-		anim_left_in = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_left_in);
 	}
-	protected abstract void initView();
-	protected abstract void initListener();
-	
 
 	@Override
 	public void setContentView(int layoutResID) {
@@ -74,12 +66,6 @@ public abstract class SingleActivity extends Activity{
 	public void setContentView(View view) {
 		if(view != null){
 			super.setContentView(view);	
-			PageInfo pageInfo = new PageInfo();
-			pageInfo.setView(view);
-			pageStack.add(pageInfo);
-			if(view instanceof WebView){
-				this.webView = (WebView) view;
-			}
 		}
 	}
 	
@@ -170,70 +156,8 @@ public abstract class SingleActivity extends Activity{
 				returnPage(pageData);
 				break;
 			case RETURN_MAIN:
-				PageInfo curPage2 = pageStack.pop();
-				if(curPage2.getIPageLife() != null){
-					curPage2.getIPageLife().onPause();  //暂停生命周期
-					curPage2.getIPageLife().onFinish(); //结束生命周期
-				} 
-				curPage2.getView().setAnimation(anim_left_out);
-				if(pageStack.size() > 0){ //存在返回界面
-					while(pageStack.size() != 1){
-						pageStack.pop();
-					}
-					PageInfo backPage = pageStack.peek(); //返回界面	
-					backPage.getView().setAnimation(anim_right_in);
-					setContentView(backPage.getView());
-					if(pageStack.size() == 1){  //调用activity中的重启生命周期
-						onResume();
-						if(pageData.getResult() != null){ //有返回值
-							returnResult(pageData.getResult());
-						}
-						return;
-					}
-					if(backPage.getIPageLife() != null){
-						backPage.getIPageLife().onResume(); //重启生命周期
-						if(pageData.getResult() != null){ //有返回值
-							backPage.getIPageLife().returnResult(pageData.getResult());
-						}
-					}
-				} else {
-					finish();
-				}
-			case OPEN_HTML:
-				
-				break;
-			case RETURN_FIX:
-				PageInfo curPage3 = pageStack.pop();
-				if(curPage3.getIPageLife() != null){
-					 curPage3.getIPageLife().onPause();  //暂停生命周期
-					 curPage3.getIPageLife().onFinish(); //结束生命周期
-				} 
-				/** 加动画 */
-				curPage3.getView().setAnimation(anim_right_out);
-				if(pageStack.size() > 0){ //存在返回界面
-					PageInfo backPage = pageStack.peek(); //返回界面	
-					backPage.getView().setAnimation(anim_left_in);
-					setContentView(backPage.getView());
-					if(pageStack.size() == 1){  //调用activity中的重启生命周期
-						onResume();
-						if(pageData.getResult() != null){ //有返回值
-							returnResult(pageData.getResult());
-						}
-						return;
-					}
-					if(backPage.getIPageLife() != null){
-						backPage.getIPageLife().onResume(); //重启生命周期
-						if(pageData.getResult() != null){ //有返回值
-							backPage.getIPageLife().returnResult(pageData.getResult());
-						}
-					} else if(backPage.getView() instanceof WebView){ //返回是webview
-						
-					}
-				} else {
-					finish();
-				}
-				break;
-			case FINISH:
+				returnMain(pageData);
+			case FINISH: 
 				finish();
 				break;
 			default:
@@ -244,7 +168,50 @@ public abstract class SingleActivity extends Activity{
 		
 	}
 	
+	/**
+	 * 返回到主activity
+	 * @param pageData
+	 */
+	private void returnMain(PageData pageData) {
+		Animation anim_right_in = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_right_in);
+		Animation anim_left_out = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_left_out);
+		
+		
+		PageInfo curPage2 = pageStack.pop();
+		if(curPage2.getIPageLife() != null){
+			curPage2.getIPageLife().onPause();  //暂停生命周期
+			curPage2.getIPageLife().onFinish(); //结束生命周期
+		} 
+		curPage2.getView().setAnimation(anim_left_out);
+		if(pageStack.size() > 0){ //存在返回界面
+			while(pageStack.size() != 1){
+				pageStack.pop();
+			}
+			PageInfo backPage = pageStack.peek(); //返回界面	
+			backPage.getView().setAnimation(anim_right_in);
+			super.setContentView(backPage.getView());
+			if(pageStack.size() == 1){  //调用activity中的重启生命周期
+				onResume();
+				if(pageData.getResult() != null){ //有返回值
+					returnResult(pageData.getResult());
+				}
+				return;
+			}
+			if(backPage.getIPageLife() != null){
+				backPage.getIPageLife().onResume(); //重启生命周期
+				if(pageData.getResult() != null){ //有返回值
+					backPage.getIPageLife().returnResult(pageData.getResult());
+				}
+			}
+		} else {
+			finish();
+		}
+	}
+	
 	private void returnPage (PageData pageData){
+		Animation anim_right_out = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_right_out);
+		Animation anim_left_in = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_left_in);
+		
 		PageInfo curPage = pageStack.pop();
 		if(curPage.getIPageLife() != null){
 			 curPage.getIPageLife().onPause();  //暂停生命周期
@@ -281,6 +248,10 @@ public abstract class SingleActivity extends Activity{
 	 * @param pageData
 	 */
 	private void open(Context context, PageData pageData){
+		Animation anim_right_in = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_right_in);
+		Animation anim_left_out = AnimationUtils.loadAnimation(SingleActivity.this.getBaseContext(), R.anim.page_left_out);
+		
+		
 		/**
 		 * 保存界面信息
 		 */
