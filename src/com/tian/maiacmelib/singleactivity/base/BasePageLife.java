@@ -95,7 +95,7 @@ public class BasePageLife implements IPageLife{
 	}
 	
 	protected View findViewById(int id){
-		return context.findViewById(id);
+		return context.findViewById(id); 
 	}
 
 }
