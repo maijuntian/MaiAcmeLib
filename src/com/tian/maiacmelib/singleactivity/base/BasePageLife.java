@@ -1,5 +1,6 @@
 package com.tian.maiacmelib.singleactivity.base;
 
+import android.R;
 import android.app.Activity;
 import android.content.Context;
 import android.view.View;
@@ -91,6 +92,10 @@ public class BasePageLife implements IPageLife{
 	@Override
 	public void onPause() {
 		
+	}
+	
+	protected View findViewById(int id){
+		return context.findViewById(id);
 	}
 
 }
