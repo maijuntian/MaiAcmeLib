@@ -4,7 +4,6 @@ import java.util.Stack;
 
 import com.mai.maiacmelib.R;
 import com.tian.maiacmelib.base.ActivityManager;
-import com.tian.maiacmelib.base.SimpleBaseActivity;
 import com.tian.maiacmelib.singleactivity.domain.PageData;
 import com.tian.maiacmelib.singleactivity.domain.PageInfo;
 import com.tian.maiacmelib.singleactivity.grobal.GrobalResource;
