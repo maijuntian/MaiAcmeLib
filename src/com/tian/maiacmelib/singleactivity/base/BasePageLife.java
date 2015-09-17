@@ -20,7 +20,7 @@ public class BasePageLife implements IPageLife{
 	 * 获取上下文
 	 * @return context
 	 */
-	protected Activity getBaseContext(){
+	protected Activity getBaseContext(){ 
 		return context;
 	}
 
