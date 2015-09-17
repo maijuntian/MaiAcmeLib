@@ -126,8 +126,10 @@ public abstract class SingleActivity extends Activity{
 	
 	private void popPage(){
 		PageInfo finishPage = pageStack.pop();
-		if(finishPage.getIPageLife() != null)
+		if(finishPage.getIPageLife() != null){
+			finishPage.getIPageLife().onPause();
 			finishPage.getIPageLife().onFinish();
+		}
 	}
 	
 	private void clearPage(){
